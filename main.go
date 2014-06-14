@@ -1,3 +1,5 @@
+//TODO connection refreshing
+
 package main
 
 import (
@@ -138,6 +140,7 @@ func main() {
 				log.Fatalf("van.NewClient %v", err)
 			}
 			defer client.Close()
+			client.SetMaxSendingBytes <- 128 * 1024
 
 			// set conns
 			for i := 0; i < 8; i++ {
@@ -161,14 +164,12 @@ func main() {
 			// handle socks client
 			socksServer.OnSignal("client", func(args ...interface{}) {
 				go func() {
-					conn := args[0].(net.Conn)
-					hostPort := args[1].(string)
-					p("SOCKS CLIENT TO %s\n", hostPort)
-					// pick a session id
 					sessionId := rand.Int63()
-					hostPorts[sessionId] = string(hostPort)
-					// set socksConns
+					conn := args[0].(net.Conn)
 					socksConns[sessionId] = conn
+					hostPort := args[1].(string)
+					hostPorts[sessionId] = string(hostPort)
+					p("SOCKS CLIENT TO %s\n", hostPort)
 					// send a connect packet
 					buf := new(bytes.Buffer)
 					binary.Write(buf, binary.LittleEndian, sessionId)
@@ -210,8 +211,9 @@ func main() {
 					data, _ := ioutil.ReadAll(reader)
 					p("FROM TARGET %s TO LOCAL %d\n", hostPorts[sessionId], len(data))
 					socksConns[sessionId].Write(data)
+				// close from remote
 				case CLOSE:
-					p("REMOTE %s CLOSE\n", hostPorts[sessionId])
+					p("REMOTE %d %s CLOSE\n", sessionId, hostPorts[sessionId])
 					socksConns[sessionId].Close()
 				}
 			}
