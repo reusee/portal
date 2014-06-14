@@ -138,6 +138,14 @@ func main() {
 			}
 			defer client.Close()
 
+			// set conns
+			for i := 0; i < 8; i++ {
+				client.NewConn()
+			}
+			client.OnSignal("DelConn", func() {
+				client.NewConn()
+			})
+
 			// start socks server
 			socksServer, err := socks.New(parts[2])
 			if err != nil {
