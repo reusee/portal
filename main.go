@@ -51,6 +51,7 @@ func main() {
 
 			// handle session
 			for session := range server.NewSession {
+				session.SetMaxSendingBytes <- 512 * 1024
 				// read packets
 				go func() { //TODO exit
 					dataFromLocal := make(map[int64]chan []byte)
