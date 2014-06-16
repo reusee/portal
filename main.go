@@ -59,6 +59,7 @@ func main() {
 					dataFromLocal := make(map[int64]chan []byte)
 					closeFromLocal := make(map[int64]chan bool)
 					for packet := range session.Recv {
+						packet = obfuscate(packet)
 						var sessionId int64
 						reader := bytes.NewReader(packet)
 						binary.Read(reader, binary.LittleEndian, &sessionId) // read session id
@@ -81,7 +82,7 @@ func main() {
 									buf := new(bytes.Buffer)
 									binary.Write(buf, binary.LittleEndian, sessionId)
 									buf.WriteByte(CLOSE)
-									session.Send(buf.Bytes())
+									session.Send(obfuscate(buf.Bytes()))
 									return
 								}
 								// send local data to target
@@ -106,7 +107,7 @@ func main() {
 										buf := new(bytes.Buffer)
 										binary.Write(buf, binary.LittleEndian, sessionId)
 										buf.WriteByte(CLOSE)
-										session.Send(buf.Bytes())
+										session.Send(obfuscate(buf.Bytes()))
 										return
 									}
 									data = data[:n]
@@ -115,7 +116,7 @@ func main() {
 									binary.Write(buf, binary.LittleEndian, sessionId)
 									buf.WriteByte(DATA)
 									buf.Write(data)
-									session.Send(buf.Bytes())
+									session.Send(obfuscate(buf.Bytes()))
 								}
 							}()
 
@@ -175,7 +176,7 @@ func main() {
 					binary.Write(buf, binary.LittleEndian, sessionId)
 					buf.WriteByte(CONNECT)
 					buf.Write([]byte(hostPort))
-					client.Send(buf.Bytes())
+					client.Send(obfuscate(buf.Bytes()))
 					// read from socks conn and send to remote
 					for {
 						data := make([]byte, 1500)
@@ -185,7 +186,7 @@ func main() {
 							buf := new(bytes.Buffer)
 							binary.Write(buf, binary.LittleEndian, sessionId)
 							buf.WriteByte(CLOSE)
-							client.Send(buf.Bytes())
+							client.Send(obfuscate(buf.Bytes()))
 							return
 						}
 						data = data[:n]
@@ -194,13 +195,14 @@ func main() {
 						binary.Write(buf, binary.LittleEndian, sessionId)
 						buf.WriteByte(DATA)
 						buf.Write(data)
-						client.Send(buf.Bytes())
+						client.Send(obfuscate(buf.Bytes()))
 					}
 				}()
 			})
 
 			// handle packet from remote
 			for packet := range client.Recv {
+				packet = obfuscate(packet)
 				reader := bytes.NewReader(packet)
 				var sessionId int64
 				binary.Read(reader, binary.LittleEndian, &sessionId) // read session id
@@ -231,4 +233,11 @@ func main() {
 usage:
 	p("usage: %s [server-addr:port] / [local-remote:port-local:port]", os.Args[0])
 	return
+}
+
+func obfuscate(data []byte) []byte {
+	for i, _ := range data {
+		data[i] ^= 0xDE
+	}
+	return data
 }
