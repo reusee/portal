@@ -1,4 +1,4 @@
-//TODO connection refreshing
+//TODO packet sending control
 
 package main
 
@@ -99,7 +99,7 @@ func main() {
 									}
 								}()
 								for {
-									data := make([]byte, 1500)
+									data := make([]byte, 700)
 									n, err := conn.Read(data)
 									if err != nil { // target error
 										p("TARGET %s READ ERROR %v\n", hostPort, err)
@@ -179,7 +179,7 @@ func main() {
 					client.Send(obfuscate(buf.Bytes()))
 					// read from socks conn and send to remote
 					for {
-						data := make([]byte, 1500)
+						data := make([]byte, 700)
 						n, err := conn.Read(data)
 						if err != nil { // socks conn closed
 							// send a close packet
