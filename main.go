@@ -1,4 +1,5 @@
 //TODO packet sending control
+//TODO status
 
 package main
 
@@ -54,6 +55,7 @@ func main() {
 			// handle session
 			for session := range server.NewSession {
 				session.SetMaxSendingBytes <- 512 * 1024
+				session.SetMaxSendingPackets <- 512
 				// read packets
 				go func() { //TODO exit
 					dataFromLocal := make(map[int64]chan []byte)
@@ -142,6 +144,7 @@ func main() {
 			}
 			defer client.Close()
 			client.SetMaxSendingBytes <- 128 * 1024
+			client.SetMaxSendingPackets <- 512
 
 			// set conns
 			for i := 0; i < 8; i++ {
