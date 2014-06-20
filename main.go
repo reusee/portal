@@ -54,8 +54,8 @@ func main() {
 
 			// handle session
 			for session := range server.NewSession {
-				session.SetMaxSendingBytes <- 512 * 1024
-				session.SetMaxSendingPackets <- 512
+				session.SetMaxSendingBytes <- 10 * 1024 * 1024
+				session.SetMaxSendingPackets <- 51200
 				// read packets
 				go func() { //TODO exit
 					dataFromLocal := make(map[int64]chan []byte)
@@ -78,7 +78,7 @@ func main() {
 							closeFromLocal[sessionId] = make(chan bool, 1)
 							// connect to target host and read
 							go func() {
-								conn, err := net.DialTimeout("tcp", string(hostPort), time.Second*8)
+								conn, err := net.DialTimeout("tcp", string(hostPort), time.Second*16)
 								if err != nil { // target error
 									p("CONNECT %s ERROR %v\n", hostPort, err)
 									buf := new(bytes.Buffer)
@@ -143,8 +143,8 @@ func main() {
 				log.Fatalf("van.NewClient %v", err)
 			}
 			defer client.Close()
-			client.SetMaxSendingBytes <- 128 * 1024
-			client.SetMaxSendingPackets <- 512
+			client.SetMaxSendingBytes <- 10 * 1024 * 1024
+			client.SetMaxSendingPackets <- 51200
 
 			// set conns
 			for i := 0; i < 8; i++ {
