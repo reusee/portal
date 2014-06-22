@@ -54,7 +54,6 @@ func main() {
 
 			// handle session
 			for session := range server.NewSession {
-				session.SetMaxSendingBytes <- 10 * 1024 * 1024
 				session.SetMaxSendingPackets <- 51200
 				// read packets
 				go func() { //TODO exit
@@ -143,15 +142,14 @@ func main() {
 				log.Fatalf("van.NewClient %v", err)
 			}
 			defer client.Close()
-			client.SetMaxSendingBytes <- 10 * 1024 * 1024
 			client.SetMaxSendingPackets <- 51200
 
 			// set conns
 			for i := 0; i < 8; i++ {
-				client.NewConn()
+				client.NewTransport()
 			}
-			client.OnSignal("DelConn", func() {
-				client.NewConn()
+			client.OnSignal("RemoveTransport", func() {
+				client.NewTransport()
 			})
 
 			// start socks server
