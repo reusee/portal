@@ -6,6 +6,7 @@ import (
 
 	socks "github.com/reusee/socks5-server"
 	"github.com/reusee/van"
+	//"../van"
 )
 
 func startLocal(remoteAddr, socksAddr string) {
@@ -32,8 +33,8 @@ func startLocal(remoteAddr, socksAddr string) {
 	defer socksServer.Close()
 
 	// globals
-	socksClientConns := make(map[int64]net.Conn)
-	hostPorts := make(map[int64]string)
+	socksClientConns := make(map[uint32]net.Conn)
+	hostPorts := make(map[uint32]string)
 
 	// handle socks client
 	socksServer.OnSignal("client", func(args ...interface{}) {
@@ -52,7 +53,7 @@ func startLocal(remoteAddr, socksAddr string) {
 				n, err := socksClientConn.Read(data)
 				if err != nil { // socks conn closed
 					// send a zero-lengthed packet
-					client.Send(conn, []byte{})
+					client.Finish(conn)
 					return
 				}
 				data = data[:n]
@@ -65,16 +66,14 @@ func startLocal(remoteAddr, socksAddr string) {
 	// handle packet from remote
 	for {
 		packet := <-client.Recv
-		if packet.Type != van.DATA {
-			continue
-		}
-		data := obfuscate(packet.Data)
-		if len(data) == 0 { // a close signal
-			p("REMOTE %d %s CLOSE\n", packet.Conn.Id, hostPorts[packet.Conn.Id])
-			socksClientConns[packet.Conn.Id].Close()
-		} else { // data
+		switch packet.Type {
+		case van.DATA:
+			data := obfuscate(packet.Data)
 			p("FROM TARGET %s TO LOCAL %d\n", hostPorts[packet.Conn.Id], len(data))
 			socksClientConns[packet.Conn.Id].Write(data)
+		case van.FIN:
+			p("REMOTE %d %s CLOSE\n", packet.Conn.Id, hostPorts[packet.Conn.Id])
+			socksClientConns[packet.Conn.Id].Close()
 		}
 	}
 }

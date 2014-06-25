@@ -20,14 +20,19 @@ func main() {
 		parts := strings.Split(arg, "-")
 		switch parts[0] {
 		case "server":
-			startServer(parts[1])
+			if len(parts) >= 3 { // debug
+				go startServer(parts[1], parts[2])
+			} else {
+				go startServer(parts[1], "")
+			}
 		case "local":
-			startLocal(parts[1], parts[2])
+			go startLocal(parts[1], parts[2])
 		default:
 			goto usage
 		}
 	}
 
+	select {}
 	return
 
 usage:
