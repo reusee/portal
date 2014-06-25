@@ -1,12 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"sort"
 	"time"
 
 	"github.com/reusee/van"
-	//"../van"
 )
 
 func startServer(addr string, debug string) {
@@ -25,6 +26,19 @@ func startServer(addr string, debug string) {
 	// handle session
 	for {
 		session := <-server.NewSession
+		hostPorts := make(map[uint32]string)
+		session.AddDebugEntry(func() (ret []string) {
+			ret = append(ret, "<Hostports>")
+			var ids []int
+			for id, _ := range hostPorts {
+				ids = append(ids, int(id))
+			}
+			sort.Ints(ids)
+			for _, id := range ids {
+				ret = append(ret, fmt.Sprintf("%10d %s", id, hostPorts[uint32(id)]))
+			}
+			return
+		})
 		// read packets
 		go func() { //TODO exit
 			packetFromLocal := make(map[uint32]chan *van.Packet)
@@ -35,6 +49,7 @@ func startServer(addr string, debug string) {
 				if _, ok := packetFromLocal[packet.Conn.Id]; !ok {
 					hostPort := string(obfuscate(packet.Data))
 					p("CONNECT %s\n", hostPort)
+					hostPorts[packet.Conn.Id] = hostPort
 					// set receive chan
 					packetFromLocal[packet.Conn.Id] = make(chan *van.Packet, 512)
 
@@ -44,6 +59,7 @@ func startServer(addr string, debug string) {
 						if err != nil { // target error
 							p("CONNECT %s ERROR %v\n", hostPort, err)
 							session.Finish(packet.Conn)
+							delete(hostPorts, packet.Conn.Id)
 							return
 						}
 
@@ -70,6 +86,7 @@ func startServer(addr string, debug string) {
 								p("TARGET %s READ ERROR %v\n", hostPort, err)
 								// send close packet
 								session.Finish(packet.Conn)
+								delete(hostPorts, packet.Conn.Id)
 								return
 							}
 							data = data[:n]
