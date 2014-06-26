@@ -7,7 +7,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/reusee/van"
+	//"github.com/reusee/van"
+	"../van"
 )
 
 func startServer(addr string, debug string) {
@@ -17,6 +18,7 @@ func startServer(addr string, debug string) {
 		log.Fatalf("van.NewServer %v", err)
 	}
 	defer server.Close()
+	p("Started.\n")
 
 	// debug
 	if debug != "" {
@@ -48,7 +50,6 @@ func startServer(addr string, debug string) {
 				// check conn existence
 				if _, ok := packetFromLocal[packet.Conn.Id]; !ok {
 					hostPort := string(obfuscate(packet.Data))
-					p("CONNECT %s\n", hostPort)
 					hostPorts[packet.Conn.Id] = hostPort
 					// set receive chan
 					packetFromLocal[packet.Conn.Id] = make(chan *van.Packet, 512)
@@ -57,7 +58,6 @@ func startServer(addr string, debug string) {
 					go func() {
 						conn, err := net.DialTimeout("tcp", hostPort, time.Second*16)
 						if err != nil { // target error
-							p("CONNECT %s ERROR %v\n", hostPort, err)
 							session.Finish(packet.Conn)
 							delete(hostPorts, packet.Conn.Id)
 							return
@@ -69,7 +69,6 @@ func startServer(addr string, debug string) {
 								packet := <-packetFromLocal[packet.Conn.Id]
 								switch packet.Type {
 								case van.DATA:
-									p("FROM LOCAL %d TO %s\n", len(packet.Data), hostPort)
 									conn.Write(obfuscate(packet.Data))
 								case van.FIN:
 									conn.Close()
@@ -83,14 +82,12 @@ func startServer(addr string, debug string) {
 							data := make([]byte, 2048)
 							n, err := conn.Read(data)
 							if err != nil { // target error
-								p("TARGET %s READ ERROR %v\n", hostPort, err)
 								// send close packet
 								session.Finish(packet.Conn)
 								delete(hostPorts, packet.Conn.Id)
 								return
 							}
 							data = data[:n]
-							p("FROM %s DATA %d\n", hostPort, n)
 							session.Send(packet.Conn, obfuscate(data))
 						}
 					}()
