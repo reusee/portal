@@ -5,8 +5,8 @@ import (
 	"net"
 
 	socks "github.com/reusee/socks5-server"
-	//"github.com/reusee/van"
-	"../van"
+	"github.com/reusee/van"
+	//"../van"
 )
 
 func startLocal(remoteAddr, socksAddr string) {

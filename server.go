@@ -7,8 +7,8 @@ import (
 	"sort"
 	"time"
 
-	//"github.com/reusee/van"
-	"../van"
+	"github.com/reusee/van"
+	//"../van"
 )
 
 func startServer(addr string, debug string) {
